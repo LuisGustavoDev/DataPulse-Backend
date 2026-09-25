@@ -1,0 +1,1 @@
+{"Rules":[{"ID":"expire-archive-30d","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":30}}]}
