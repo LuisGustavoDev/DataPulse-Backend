@@ -1,0 +1,7 @@
+{
+  "name": "datapulse",
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  }
+}
