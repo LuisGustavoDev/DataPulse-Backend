@@ -117,3 +117,7 @@ datapulse/
 **`pnpm: command not found`:** rode `nvm use` e depois `corepack enable`.
 
 **`pnpm check` falha em um serviço:** veja o estado com `pnpm infra:ps` e os logs com `pnpm infra:logs`.
+
+## Licença
+
+[MIT](LICENSE) © 2026 LuisGustavoDev
