@@ -4,24 +4,30 @@
   "engines": {
     "node": ">=24"
   },
-"scripts": {
-  "build": "nx run-many -t build",
-  "test": "nx run-many -t test",
-  "lint": "nx run-many -t lint",
-  "infra:up": "docker compose --env-file .env -f deploy/compose/docker-compose.yml up -d",
-  "infra:down": "docker compose --env-file .env -f deploy/compose/docker-compose.yml down",
-  "infra:ps": "docker compose --env-file .env -f deploy/compose/docker-compose.yml ps -a",
-  "infra:logs": "docker compose --env-file .env -f deploy/compose/docker-compose.yml logs -f"
-},
+  "scripts": {
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t test",
+    "lint": "nx run-many -t lint",
+    "infra:up": "docker compose --env-file .env -f deploy/compose/docker-compose.yml up -d",
+    "infra:down": "docker compose --env-file .env -f deploy/compose/docker-compose.yml down",
+    "infra:ps": "docker compose --env-file .env -f deploy/compose/docker-compose.yml ps -a",
+    "infra:logs": "docker compose --env-file .env -f deploy/compose/docker-compose.yml logs -f",
+    "check": "node --env-file=.env scripts/check-env.mts"
+  },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1140.0",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.6",
+    "@types/pg": "^8.23.1",
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
+    "ioredis": "^6.0.0",
     "nx": "^23.2.1",
+    "pg": "^8.23.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.1"
-  }
+  },
+  "packageManager": "pnpm@12.6.0+sha512.3ef68f951cb111ac204b4a5a16f0b2ddf0da56a96e0413e81d855d9f0b55ef926714709028e1cd00c405c2c5fb7b9e8ec4dc46777c805d0373c2f2ff00fd20ec"
 }
