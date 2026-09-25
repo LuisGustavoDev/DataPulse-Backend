@@ -19,7 +19,7 @@ Tudo é gratuito e open source. Nenhum serviço pago nem conta em nuvem é neces
 
 ## Pré-requisitos
 
-- **Linux** (ou macOS / WSL2)
+- **Linux** (único sistema suportado)
 - **Docker** com o Compose v2 (`docker compose version`)
 - **git**
 - **nvm** ([instalação](https://github.com/nvm-sh/nvm#installing-and-updating))
