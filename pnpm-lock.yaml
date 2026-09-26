@@ -208,6 +208,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1140.0
+        version: 3.1140.0
       '@nestjs/common':
         specifier: ^12.1.0
         version: 12.1.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -217,6 +220,12 @@ importers:
       '@nestjs/platform-express':
         specifier: ^12.1.0
         version: 12.1.0(@nestjs/common@12.1.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.1.0)(supports-color@7.2.0)
+      ioredis:
+        specifier: ^6.0.0
+        version: 6.0.0(supports-color@7.2.0)
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -230,6 +239,9 @@ importers:
       '@nestjs/cli':
         specifier: ^12.0.7
         version: 12.0.7(@types/node@24.13.6)(prettier@3.9.9)
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
 
 packages:
 
