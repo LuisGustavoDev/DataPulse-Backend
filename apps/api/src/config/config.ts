@@ -14,6 +14,11 @@ const EnvSchema = z.object({
   S3_SECRET_KEY: z.string().min(1),
   S3_BUCKET_INCOMING: z.string().min(1),
   S3_BUCKET_ARCHIVE: z.string().min(1),
+
+    // Chaves RSA em PEM codificado em base64 (geradas por "pnpm keys:generate")
+  JWT_PRIVATE_KEY: z.base64().min(1),
+  JWT_PUBLIC_KEY: z.base64().min(1),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900), // 15 min
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;

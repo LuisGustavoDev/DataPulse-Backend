@@ -2,4 +2,5 @@ packages:
   - apps/*
   - libs/*
 allowBuilds:
+  argon2: true
   nx: true

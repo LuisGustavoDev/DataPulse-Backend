@@ -2,14 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { parseConfig } from './config';
 
 const valid = {
-  DATABASE_URL: 'postgres://u:p@localhost:5432/db',
-  REDIS_URL: 'redis://localhost:6379',
-  S3_ENDPOINT: 'http://localhost:9000',
-  S3_REGION: 'us-east-1',
-  S3_ACCESS_KEY: 'key',
-  S3_SECRET_KEY: 'secret',
-  S3_BUCKET_INCOMING: 'dp-incoming',
-  S3_BUCKET_ARCHIVE: 'dp-archive',
+    DATABASE_URL: 'postgres://u:p@localhost:5432/db',
+    REDIS_URL: 'redis://localhost:6379',
+    S3_ENDPOINT: 'http://localhost:9000',
+    S3_REGION: 'us-east-1',
+    S3_ACCESS_KEY: 'key',
+    S3_SECRET_KEY: 'secret',
+    S3_BUCKET_INCOMING: 'dp-incoming',
+    S3_BUCKET_ARCHIVE: 'dp-archive',
+    JWT_PRIVATE_KEY: 'cHJpdmF0ZQ==',
+    JWT_PUBLIC_KEY: 'cHVibGlj',
 };
 
 describe('parseConfig', () => {
