@@ -13,7 +13,10 @@
     "infra:down": "docker compose --env-file .env -f deploy/compose/docker-compose.yml down",
     "infra:ps": "docker compose --env-file .env -f deploy/compose/docker-compose.yml ps -a",
     "infra:logs": "docker compose --env-file .env -f deploy/compose/docker-compose.yml logs -f",
-    "check": "node --env-file=.env scripts/check-env.mts"
+    "check": "node --env-file=.env scripts/check-env.mts",
+    "db:migrate": "node-pg-migrate up -m db/migrations --envPath .env",
+    "db:rollback": "node-pg-migrate down -m db/migrations --envPath .env",
+    "db:new": "node-pg-migrate create -m db/migrations -j sql"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1140.0",
@@ -23,6 +26,7 @@
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
     "ioredis": "^6.0.0",
+    "node-pg-migrate": "^9.0.0",
     "nx": "^23.2.1",
     "pg": "^8.23.0",
     "prettier": "^3.9.9",
