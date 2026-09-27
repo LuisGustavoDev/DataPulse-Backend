@@ -19,6 +19,8 @@ const EnvSchema = z.object({
   JWT_PRIVATE_KEY: z.base64().min(1),
   JWT_PUBLIC_KEY: z.base64().min(1),
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900), // 15 min
+
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;
