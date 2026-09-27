@@ -14,8 +14,10 @@
     "infra:ps": "docker compose --env-file .env -f deploy/compose/docker-compose.yml ps -a",
     "infra:logs": "docker compose --env-file .env -f deploy/compose/docker-compose.yml logs -f",
     "check": "node --env-file=.env scripts/check-env.mts",
-    "db:migrate": "node-pg-migrate up -m db/migrations --envPath .env",
-    "db:rollback": "node-pg-migrate down -m db/migrations --envPath .env",
+    "db:migrate": "node-pg-migrate up -m db/migrations -d MIGRATION_DATABASE_URL --envPath .env",
+    "db:rollback": "node-pg-migrate down -m db/migrations -d MIGRATION_DATABASE_URL --envPath .env",
+    "db:app-user": "node --env-file=.env scripts/create-db-app-user.mts",
+    "db:setup": "pnpm db:migrate && pnpm db:app-user",
     "db:new": "node-pg-migrate create -m db/migrations -j sql",
     "keys:generate": "node scripts/generate-jwt-keys.mts"
   },

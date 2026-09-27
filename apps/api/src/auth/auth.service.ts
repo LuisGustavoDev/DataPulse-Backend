@@ -14,6 +14,7 @@ import { newId } from '../common/uuid';
 import type { AppConfig } from '../config/config';
 import { APP_CONFIG } from '../config/config.module';
 import { PG_POOL } from '../infra/infra.module';
+import { transaction } from '../infra/tenant';
 import type { AccessTokenClaims, LoginBody, SignupBody } from './auth.schemas';
 import { hashPassword, verifyPassword } from './password';
 import { generateRefreshToken, hashRefreshToken } from './refresh-token';
@@ -79,8 +80,9 @@ export class AuthService {
     const tenantId = newId();
     const userId = newId();
 
-    // Empresa, usuário e sessão nascem juntos: se um falhar, nenhum fica gravado
-    return this.transaction(async (client) => {
+    // Empresa, usuário e sessão nascem juntos: se um falhar, nenhum fica gravado.
+    // A transação já começa como a empresa nova, senão a política barraria os INSERT.
+    return transaction(this.pool, tenantId, async (client) => {
       try {
         await client.query('INSERT INTO tenants (id, name) VALUES ($1, $2)', [tenantId, body.company_name]);
         await client.query(
@@ -99,16 +101,10 @@ export class AuthService {
   }
 
   async login(body: LoginBody): Promise<Session> {
+    // Ainda não se sabe a empresa: a função SECURITY DEFINER busca em todas
     const { rows } = await this.pool.query<
       UserWithTenant & { password_hash: string; status: string; tenant_status: string }
-    >(
-      `SELECT u.id, u.email, u.role, u.password_hash, u.status,
-              t.id AS tenant_id, t.name AS tenant_name, t.status AS tenant_status
-         FROM users u
-         JOIN tenants t ON t.id = u.tenant_id
-        WHERE u.email = $1`,
-      [body.email],
-    );
+    >('SELECT * FROM auth_find_user_by_email($1)', [body.email]);
     const user = rows[0];
 
     const passwordOk = await verifyPassword(user?.password_hash ?? (await this.dummyHash), body.password);
@@ -120,7 +116,7 @@ export class AuthService {
       throw new HttpException({ code: 'USER_DISABLED', message: 'Acesso desativado' }, HttpStatus.LOCKED);
     }
 
-    return this.transaction(async (client) => {
+    return transaction(this.pool, user.tenant_id, async (client) => {
       await client.query('UPDATE users SET last_login_at = now() WHERE id = $1', [user.id]);
       // Cada login abre uma família nova de refresh tokens
       return this.startSession(client, user, newId());
@@ -135,37 +131,43 @@ export class AuthService {
     if (!refreshToken) throw refreshInvalid();
 
     let reuseDetected = false;
-    const session = await this.transaction(async (client) => {
+    const session = await transaction(this.pool, null, async (client) => {
       // FOR UPDATE trava a linha: dois refresh simultâneos com o mesmo token não passam os dois
-      const { rows } = await client.query<
-        UserWithTenant & { token_id: string; family_id: string; expires_at: Date; revoked_at: Date | null; status: string; tenant_status: string }
-      >(
-        `SELECT rt.id AS token_id, rt.family_id, rt.expires_at, rt.revoked_at,
-                u.id, u.email, u.role, u.status, t.id AS tenant_id, t.name AS tenant_name, t.status AS tenant_status
-           FROM refresh_tokens rt
-           JOIN users u ON u.id = rt.user_id
-           JOIN tenants t ON t.id = u.tenant_id
-          WHERE rt.token_hash = $1
-          FOR UPDATE OF rt`,
+      const { rows: tokens } = await client.query<{
+        token_id: string;
+        user_id: string;
+        family_id: string;
+        expires_at: Date;
+        revoked_at: Date | null;
+      }>(
+        `SELECT id AS token_id, user_id, family_id, expires_at, revoked_at
+           FROM refresh_tokens
+          WHERE token_hash = $1
+          FOR UPDATE`,
         [hashRefreshToken(refreshToken)],
       );
-      const row = rows[0];
-      if (!row) return null;
+      const token = tokens[0];
+      if (!token) return null;
 
-      if (row.revoked_at) {
+      if (token.revoked_at) {
         // Reuso: revoga todos os tokens da família. O COMMIT acontece antes do erro.
-        await client.query('UPDATE refresh_tokens SET revoked_at = now() WHERE family_id = $1 AND revoked_at IS NULL', [row.family_id]);
+        await client.query('UPDATE refresh_tokens SET revoked_at = now() WHERE family_id = $1 AND revoked_at IS NULL', [token.family_id]);
         reuseDetected = true;
         return null;
       }
-      if (row.expires_at.getTime() <= Date.now() || row.status !== 'active' || row.tenant_status !== 'active') {
+
+      const { rows: users } = await client.query<UserWithTenant & { status: string; tenant_status: string }>(
+        'SELECT * FROM auth_find_user_by_id($1)',
+        [token.user_id],
+      );
+      const user = users[0];
+      if (!user || token.expires_at.getTime() <= Date.now() || user.status !== 'active' || user.tenant_status !== 'active') {
         return null;
       }
 
-      await client.query('UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1', [row.token_id]);
-      return this.startSession(client, row, row.family_id);
+      await client.query('UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1', [token.token_id]);
+      return this.startSession(client, user, token.family_id);
     });
-
     if (!session) {
       if (reuseDetected) {
         // Fica registrado no log: é um sinal de token roubado
@@ -189,12 +191,14 @@ export class AuthService {
 
   /** Dados do usuário logado, lidos do banco (o token pode estar desatualizado). */
   async me(claims: AccessTokenClaims): Promise<Pick<AuthResult, 'user' | 'tenant'>> {
-    const { rows } = await this.pool.query<UserWithTenant>(
-      `SELECT u.id, u.email, u.role, t.id AS tenant_id, t.name AS tenant_name
-         FROM users u
-         JOIN tenants t ON t.id = u.tenant_id
-        WHERE u.id = $1 AND u.tenant_id = $2`,
-      [claims.sub, claims.tid],
+    const { rows } = await transaction(this.pool, claims.tid, (client) =>
+      client.query<UserWithTenant>(
+        `SELECT u.id, u.email, u.role, t.id AS tenant_id, t.name AS tenant_name
+           FROM users u
+           JOIN tenants t ON t.id = u.tenant_id
+          WHERE u.id = $1`,
+        [claims.sub],
+      ),
     );
     const user = rows[0];
     if (!user) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Usuário não encontrado' });
@@ -220,21 +224,5 @@ export class AuthService {
         expires_in: this.tokens.accessTokenTtlSeconds,
       },
     };
-  }
-
-  /** Roda `fn` numa transação: COMMIT se terminar, ROLLBACK se lançar erro. */
-  private async transaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
-      const result = await fn(client);
-      await client.query('COMMIT');
-      return result;
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
   }
 }
